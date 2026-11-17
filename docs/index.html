@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>word-pro – The lightweight Word alternative</title>
+<meta name="description" content="A lightweight Word-style editor in pure Java Swing. Free and always yours.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%232b579a'/%3E%3Ctext x='32' y='45' font-size='36' font-weight='700' text-anchor='middle' fill='%23fff' font-family='Arial'%3EW%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--fg:#000;--sub:#7a7a7a;--muted:#8a8a8a;--panel:#eee;--line:#e2e2e2;--accent:#2b579a;--btn:#000;--btnfg:#fff;--bd:#dcdcdc;--li:#333;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111;--fg:#f4f4f4;--sub:#a0a0a0;--muted:#8a8a8a;--panel:#1b1b1b;--line:#2c2c2c;--accent:#6ea0ee;--btn:#f4f4f4;--btnfg:#111;--bd:#3a3a3a;--li:#ddd}}
+:root[data-theme="dark"]{--bg:#111;--fg:#f4f4f4;--sub:#a0a0a0;--muted:#8a8a8a;--panel:#1b1b1b;--line:#2c2c2c;--accent:#6ea0ee;--btn:#f4f4f4;--btnfg:#111;--bd:#3a3a3a;--li:#ddd}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font-family:Inter,-apple-system,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color .35s,color .35s}
+a{color:inherit;text-decoration:none}::selection{background:var(--accent);color:#fff}
+.nav{display:flex;justify-content:flex-end;padding:25px 46px 0}
+.theme{position:relative;width:60px;height:32px;border-radius:999px;border:1.5px solid var(--bd);background:var(--panel);padding:0;cursor:pointer}
+.knob{position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;background:var(--btn);color:var(--btnfg);display:grid;place-items:center;font-size:13px;transition:transform .5s cubic-bezier(.68,-.4,.27,1.4)}
+:root[data-theme="dark"] .knob{transform:translateX(28px)}
+.hero{position:relative;isolation:isolate;text-align:center;padding-top:80px}
+.hero h1{margin:0;font-size:72px;line-height:75px;font-weight:700;letter-spacing:-.025em}
+.sub{font-size:22px;line-height:32px;color:var(--sub);max-width:760px;margin:16px auto 0;animation:rise .8s .6s both}
+.buttons{display:flex;justify-content:center;gap:14px;margin-top:48px;animation:rise .8s .8s both}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:53px;border-radius:999px;font-size:15px;font-weight:500;transition:transform .15s,border-color .3s,color .3s}
+.btn:hover{transform:scale(1.03)}.btn-d{width:200px;background:var(--btn);color:var(--btnfg)}.btn-g{width:195px;border:1.5px solid var(--bd)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.strip{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.strip i{position:absolute;left:-25%;top:40px;width:150%;height:240px;opacity:.4;filter:blur(55px);transform:rotate(-9deg);background:linear-gradient(90deg,#02024a,#2b579a,#3cc8ff,#f55fc0,#ffb347,#2b579a,#02024a);background-size:300% 100%;animation:strip 6s ease-in-out infinite alternate}
+@keyframes strip{from{background-position:0 0;transform:rotate(-9deg) translateX(-12%) scaleY(.85)}to{background-position:100% 0;transform:rotate(-9deg) translateX(12%) scaleY(1.2)}}
+.w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em}
+.w>span{display:inline-block;transform:translateY(115%) rotate(4deg);animation:up .9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes up{to{transform:none}}@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.demo{max-width:900px;margin:56px auto 0;padding:0 24px;animation:rise .9s 1s both;text-align:left}
+.mon{background:#1c1c1e;border-radius:16px;padding:8px;box-shadow:0 30px 60px rgba(0,0,0,.28)}
+.win{background:#e6e6e6;border-radius:9px;overflow:hidden;color:#222;font-size:12px}
+.tb{background:#2b579a;color:#fff;display:flex;align-items:center;gap:8px;padding:7px 12px}.tb i{width:10px;height:10px;border-radius:50%}.tb b{margin:0 auto}
+.tabs{background:#2b579a;display:flex;gap:2px;padding:0 8px}.tabs span{padding:5px 12px;color:#fff}.tabs .on{background:#f3f3f3;color:#222;border-radius:3px 3px 0 0}
+.rb{background:#f3f3f3;display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border-bottom:1px solid #d1d1d1}
+.rb button{border:1px solid transparent;background:none;border-radius:4px;min-width:30px;height:30px;font:inherit;cursor:pointer;color:#222;transition:background .15s}
+.rb button:hover{background:#dcdcdc;border-color:#d1d1d1}.rb i{width:1px;background:#d1d1d1;margin:0 4px}
+.pgw{padding:22px 14px;display:flex;justify-content:center}
+#ed{background:#fff;color:#000;width:100%;max-width:560px;min-height:230px;padding:36px 44px;box-shadow:0 0 6px #0005;outline:0;font:14px/1.45 Calibri,Carlito,Arial,sans-serif}
+#ed h1{font:400 22px Calibri,Arial,sans-serif;color:#2f5496;margin:0 0 8px}#ed h2{font:400 17px Calibri,Arial,sans-serif;color:#2f5496;margin:8px 0 4px}#ed p{margin:0 0 8px}
+.sb{background:#2b579a;color:#fff;display:flex;gap:16px;padding:3px 12px;font-size:11px}
+.hint{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1100px;margin:90px auto 0;padding:0 24px;text-align:center}
+.st b{display:block;font-size:48px;line-height:56px;font-weight:700;letter-spacing:-.02em;background:linear-gradient(90deg,#2b579a,#f55fc0,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}.st span{color:var(--sub);font-size:14px}
+.purpose{display:flex;margin-top:110px}.gallery{width:50%;display:flex;flex-direction:column;background:var(--panel)}
+.slot{flex:1 1 0;min-height:260px;background:#fff;overflow:hidden}.slot+.slot{border-top:1px solid #e2e2e2}.slot svg{width:100%;height:100%;display:block}
+.info{width:50%;background:var(--panel);padding:73px 60px 73px 100px}
+.label{margin:0;font-size:13px;font-weight:700;color:var(--muted)}.info h2{margin:14px 0 0;font-size:24px;line-height:30px;font-weight:600;letter-spacing:-.01em}
+.copy{max-width:433px;margin-top:24px}.copy p{margin:0 0 20px;font-size:16px;line-height:22px;color:var(--muted)}
+.features{list-style:none;margin:44px 0 0;padding:0;max-width:540px}
+.features li{display:flex;gap:20px;padding:14px 0 14px 11px;border-bottom:1px solid var(--line)}.features li:last-child{border:0}
+.features em{flex:none;width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;font-style:normal;font-weight:700;font-size:13px;display:grid;place-items:center;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.features li:hover em{transform:scale(1.25) rotate(-8deg)}.features b{display:block;font-size:14px;font-weight:600}.features small{display:block;margin-top:4px;font-size:12.5px;line-height:19px;color:var(--muted)}
+.note{max-width:540px;margin:28px 0 0;padding:16px 18px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12.5px;line-height:19px;color:var(--muted)}.note b{color:var(--fg)}
+.footer{display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;padding:114px 70px 110px 65px}
+.fb{display:flex;align-items:center;gap:20px}.logo{width:79px;height:79px;border-radius:18px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:44px;font-weight:700;animation:bob 3.5s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-9px) rotate(-5deg)}}.fb span{font-size:30px;font-weight:500;letter-spacing:-.01em}.footer .buttons{margin:0}
+.legal{margin:0;padding:10px 20px;text-align:center;font-size:12px;color:#b5b5b5;border-top:1px dotted var(--line)}
+.rv{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}.rv.in{opacity:1;transform:none}
+@media(max-width:1100px){.hero h1{font-size:60px;line-height:64px}.info{padding:60px 40px 50px 50px}}
+@media(max-width:768px){.nav{padding:20px}.hero{padding-top:50px}.hero h1{font-size:calc((100vw - 40px)/8.6);line-height:1.04}.sub{font-size:16.5px;line-height:23px;padding:0 20px}
+.buttons{flex-direction:column;align-items:center;gap:8px;margin-top:36px}.btn{height:45px;font-size:14px}.btn-d,.btn-g{width:190px}
+.demo{padding:0 10px}#ed{padding:22px}.stats{grid-template-columns:1fr 1fr;margin-top:60px}.st b{font-size:36px}
+.purpose{flex-direction:column;margin-top:35px}.gallery,.info{width:100%}.slot{flex:none;height:calc(100vw*.5625);min-height:0}.info{padding:42px 28px 40px}
+.footer{flex-direction:column;padding:60px 25px 80px}.fb{flex-direction:column;gap:14px}.footer .buttons{margin-top:40px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.w>span{transform:none}.rv{opacity:1;transform:none}}
+</style></head><body>
+<nav class="nav"><button class="theme" id="theme" type="button" aria-label="Toggle dark mode"><span class="knob" id="kn">☀</span></button></nav>
+
+<header class="hero">
+<div class="strip" aria-hidden="true"><i></i></div>
+<h1>Your words.<br>Your document.<br>Your editor.</h1>
+<p class="sub">A lightweight Word-style editor in pure Java Swing: a familiar ribbon, styles, lists, pictures and RTF files. Free, small, and always yours.</p>
+<div class="buttons"><a class="btn btn-d" href="https://github.com/Medhat-17/word-pro/releases/latest">Download</a><a class="btn btn-g" href="https://github.com/Medhat-17/word-pro" target="_blank" rel="noopener">View on GitHub</a></div>
+<div class="demo"><div class="mon"><div class="win">
+<div class="tb"><i style="background:#ff5f56"></i><i style="background:#ffbd2e"></i><i style="background:#27c93f"></i><b>Document1 – word-pro</b></div>
+<div class="tabs"><span>File</span><span class="on">Home</span><span>Insert</span><span>Layout</span><span>View</span></div>
+<div class="rb" id="rb">
+<button data-c="undo">↶</button><button data-c="redo">↷</button><i></i>
+<button data-c="bold"><b>B</b></button><button data-c="italic"><i style="width:auto;background:none;margin:0;font-style:italic">I</i></button><button data-c="underline"><u>U</u></button><button data-c="strikeThrough"><s>S</s></button><i></i>
+<button data-c="formatBlock" data-v="P">Normal</button><button data-c="formatBlock" data-v="H1" style="color:#2f5496">Heading 1</button><button data-c="formatBlock" data-v="H2" style="color:#2f5496">Heading 2</button><i></i>
+<button data-c="insertUnorderedList">• List</button><button data-c="justifyLeft">Left</button><button data-c="justifyCenter">Center</button><button data-c="justifyRight">Right</button></div>
+<div class="pgw"><div id="ed" contenteditable="true" spellcheck="false"><h1>Meeting notes</h1><p>Select some text, then use the ribbon above. This is a live editor, just like the real app.</p><h2>Agenda</h2><p>Draft the proposal, review styles, and export to RTF.</p></div></div>
+<div class="sb"><span>Page 1</span><span id="wc">0 words</span><span>English (US)</span></div>
+</div></div><p class="hint">Try it: edit the page, make text bold, switch to Heading 1, or toggle dark mode.</p></div>
+</header>
+
+<section class="stats">
+<div class="st"><b data-n="1">0</b><span>Source file</span></div>
+<div class="st"><b data-n="0">0</b><span>External libraries</span></div>
+<div class="st"><b data-n="5">0</b><span>Ribbon tabs</span></div>
+<div class="st"><b data-n="3">0</b><span>Heading styles</span></div>
+</section>
+
+<section class="purpose">
+<div class="gallery">
+<div class="slot"><svg viewBox="0 0 600 340" role="img" aria-label="Word-style ribbon"><rect width="600" height="340" fill="#fff"/><text x="40" y="46" font-size="16" font-weight="600" fill="#222">The ribbon you know</text><text x="40" y="66" font-size="12" fill="#888">Home, Insert, Layout and View</text>
+<rect x="40" y="86" width="520" height="30" fill="#2b579a"/><g font-size="12" fill="#fff"><text x="54" y="106">File</text><text x="110" y="106">Home</text><text x="170" y="106">Insert</text><text x="232" y="106">Layout</text><text x="296" y="106">View</text></g>
+<rect x="40" y="116" width="520" height="92" fill="#f3f3f3" stroke="#d1d1d1"/><g fill="#fff" stroke="#d1d1d1"><rect x="54" y="128" width="60" height="62" rx="4"/><rect x="132" y="128" width="130" height="26" rx="4"/><rect x="132" y="162" width="26" height="26" rx="4"/><rect x="164" y="162" width="26" height="26" rx="4"/><rect x="196" y="162" width="26" height="26" rx="4"/><rect x="290" y="128" width="110" height="60" rx="4"/><rect x="420" y="128" width="120" height="60" rx="4"/></g>
+<g font-size="11" fill="#666"><text x="84" y="164" text-anchor="middle">Paste</text><text x="177" y="145" text-anchor="middle">Calibri  11</text><text x="345" y="162" text-anchor="middle">Heading 1</text><text x="480" y="162" text-anchor="middle">Find / Replace</text></g>
+<rect x="40" y="230" width="520" height="86" fill="#e6e6e6"/><rect x="170" y="238" width="260" height="78" fill="#fff"/><g stroke="#ccc" stroke-width="3"><path d="M190 258H400M190 272H380M190 286H400"/></g></svg></div>
+<div class="slot"><svg viewBox="0 0 600 340" role="img" aria-label="Headings and lists"><rect width="600" height="340" fill="#fff"/><text x="40" y="46" font-size="16" font-weight="600" fill="#222">Styles &amp; lists</text><text x="40" y="66" font-size="12" fill="#888">Headings, bullets and numbering</text>
+<rect x="120" y="84" width="360" height="236" fill="#fff" stroke="#d1d1d1"/><text x="146" y="122" font-size="22" fill="#2f5496">Heading 1</text><text x="146" y="152" font-size="16" fill="#2f5496">Heading 2</text>
+<g font-size="13" fill="#333"><text x="146" y="182">• First point</text><text x="146" y="204">• Second point</text><text x="146" y="236">1. Step one</text><text x="146" y="258">2. Step two</text></g><g stroke="#ccc" stroke-width="3"><path d="M146 282H440M146 298H400"/></g></svg></div>
+<div class="slot"><svg viewBox="0 0 600 340" role="img" aria-label="Save and print"><rect width="600" height="340" fill="#fff"/><text x="40" y="46" font-size="16" font-weight="600" fill="#222">Open, save &amp; print</text><text x="40" y="66" font-size="12" fill="#888">RTF opens in Word, plus plain text and printing</text>
+<g stroke-width="2" fill="#fff"><path d="M70 110h70l30 30v110H70z" stroke="#2b579a"/><path d="M250 110h70l30 30v110H250z" stroke="#888"/><path d="M430 110h70l30 30v110H430z" stroke="#1d6f42"/></g>
+<g font-size="14" font-weight="700" text-anchor="middle"><rect x="84" y="186" width="72" height="28" rx="5" fill="#2b579a"/><text x="120" y="206" fill="#fff">.rtf</text><rect x="264" y="186" width="72" height="28" rx="5" fill="#888"/><text x="300" y="206" fill="#fff">.txt</text><rect x="444" y="186" width="72" height="28" rx="5" fill="#1d6f42"/><text x="480" y="206" fill="#fff">Print</text></g>
+<g font-size="12" fill="#555" text-anchor="middle"><text x="120" y="284">Save as RTF</text><text x="300" y="284">Save as text</text><text x="480" y="284">Print / PDF</text></g></svg></div>
+</div>
+
+<div class="info">
+<p class="label">Purpose</p>
+<h2>All the tools you need for<br>everyday writing</h2>
+<div class="copy"><p>Word is heavy, and simpler editors don’t feel familiar enough to stay in flow. That’s why I built word-pro.</p><p>It keeps the layout you already know, the ribbon, the page and the status bar, and drops everything else. One Java file, no external libraries, and it starts instantly.</p><p>Because it’s a single readable file, you can open it up and change any feature to fit your needs.</p></div>
+<ul class="features">
+<li><em>¶</em><span><b>Document Editing</b><small>A page on a grey canvas with undo and redo, cut, copy and paste, find and replace-all, select all, a live word and character count, and keyboard shortcuts for save, find, bold, italic and underline.</small></span></li>
+<li><em>B</em><span><b>Text Formatting</b><small>Font family and size, bold, italic, underline and strikethrough, font colour and highlight colour, with formatting that follows the selection or the next characters you type.</small></span></li>
+<li><em>H</em><span><b>Styles &amp; Paragraphs</b><small>Normal and Heading 1 to 3 styles, left, centre, right and justified alignment, indent and outdent, line spacing from 1.0 to 2.0, and bulleted and numbered lists you can toggle on and off.</small></span></li>
+<li><em>+</em><span><b>Insert</b><small>Pictures from disk (large images are scaled to fit), a horizontal line, today’s date and page-break markers.</small></span></li>
+<li><em>▯</em><span><b>Page Layout</b><small>Narrow, normal and wide margins, portrait and landscape page shapes, and a dark canvas option under the View tab.</small></span></li>
+<li><em>▤</em><span><b>Files</b><small>New, open and save as RTF (opens in Word and most editors), open and save plain text, and print from the File menu.</small></span></li>
+<li><em>&Omega;</em><span><b>Symbols for Assignments</b><small>A symbol picker (Ctrl+M) with 270+ Unicode math and text symbols: Greek, operators, relations, sets and logic, arrows, super and subscripts, fractions and currency. Type <code>\alpha</code> then space and it turns into the symbol, and ready-made equations insert in one click.</small></span></li>
+<li><em>&#9638;</em><span><b>Real Pages</b><small>A true page view with a gap between pages, Letter, A4, Legal and A5 paper, margins, landscape, and page breaks that start a new page.</small></span></li>
+<li><em>&#9635;</em><span><b>Pictures &amp; Image Editing</b><small>Paste pictures straight from the browser or a screenshot with Ctrl+V. Double-click a picture to crop, rotate, flip and adjust brightness, contrast, grayscale, sepia or invert. Right-click for size, position and save options.</small></span></li>
+<li><em>J</em><span><b>Technology</b><small>Pure Java Swing with no external libraries. Download a ready-made app for Windows, macOS or Linux from the Releases page, or build it yourself with <code>./build.sh</code>.</small></span></li>
+</ul>
+<p class="note"><b>Good to know.</b> word-pro is a lightweight editor. Pictures are kept when you export to HTML but are not stored in RTF files yet. Tables, hyperlinks, zoom, headers and footers, and native .docx import and export are not included yet.</p>
+</div></section>
+
+<footer class="footer"><div class="fb"><div class="logo">W</div><span>word-pro</span></div>
+<div class="buttons"><a class="btn btn-d" href="https://github.com/Medhat-17/word-pro/releases/latest">Download</a><a class="btn btn-g" href="https://github.com/Medhat-17/word-pro" target="_blank" rel="noopener">View on GitHub</a></div></footer>
+<p class="legal">Word and Microsoft are trademarks of Microsoft Corporation. word-pro is not affiliated with or endorsed by Microsoft.</p>
+
+<script>
+(function(){
+var r=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)'),kn=document.getElementById('kn');
+function set(t){r.dataset.theme=t;kn.textContent=t==='dark'?'☾':'☀'}
+set(mq.matches?'dark':'light');
+document.getElementById('theme').onclick=function(){set(r.dataset.theme==='dark'?'light':'dark')};
+var k=0;[].slice.call(document.querySelector('.hero h1').childNodes).forEach(function(n){if(n.nodeType!==3)return;var f=document.createDocumentFragment(),ws=n.textContent.split(/\s+/).filter(Boolean);
+ws.forEach(function(w,i){var o=document.createElement('span'),s=document.createElement('span');o.className='w';s.textContent=w;s.style.animationDelay=(.15+k++*.13)+'s';o.appendChild(s);f.appendChild(o);if(i<ws.length-1)f.appendChild(document.createTextNode(' '))});n.replaceWith(f)});
+var ed=document.getElementById('ed'),wc=document.getElementById('wc');
+function cnt(){var t=ed.innerText.trim();wc.textContent=(t?t.split(/\s+/).length:0)+' words'}
+[].forEach.call(document.querySelectorAll('#rb button'),function(b){b.onmousedown=function(e){e.preventDefault()};b.onclick=function(){ed.focus();document.execCommand(b.dataset.c,false,b.dataset.v||null);cnt()}});
+ed.addEventListener('input',cnt);cnt();
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;io.unobserve(e.target);e.target.classList.add('in')})},{threshold:.12});
+['.slot','.info .label','.info h2','.copy p','.features li','.st','.fb','.footer .buttons'].forEach(function(q){[].forEach.call(document.querySelectorAll(q),function(n){n.classList.add('rv');io.observe(n)})});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;so.unobserve(e.target);var b=e.target,n=+b.dataset.n,t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/1200);b.textContent=Math.round(n*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)})},{threshold:.6});
+[].forEach.call(document.querySelectorAll('.st b'),function(b){so.observe(b)});
+})();
+</script>
+</body></html>
