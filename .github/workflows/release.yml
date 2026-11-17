@@ -1,0 +1,132 @@
+name: Release
+
+# Push a tag like v0.3.0 (or publish a release in the GitHub UI) and this builds
+# downloads for Windows, macOS and Linux and attaches them to the release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  name: linux-x64,   icon: assets/icon.png }
+          - { os: windows-latest, name: windows-x64, icon: assets/icon.ico }
+          - { os: macos-latest,   name: macos-arm64, icon: assets/icon.icns }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Work out the version
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/*) TAG="$GITHUB_REF_NAME"; VER="${TAG#v}" ;;
+            *)           TAG="dev"; VER="0.0.0-dev" ;;
+          esac
+          APPVER="$VER"
+          case "$APPVER" in 0.*) APPVER="1.${APPVER#0.}" ;; esac   # macOS needs a major version of 1 or more
+          APPVER="${APPVER%%-*}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "APPVER=$APPVER" >> "$GITHUB_ENV"
+
+      - name: Compile and build the jar
+        run: |
+          mkdir -p classes dist release upload installers
+          javac -encoding UTF-8 --release 8 -d classes src/wordpro/*.java
+          printf 'Main-Class: wordpro.Main\nImplementation-Version: %s\n' "$VER" > classes/manifest.txt
+          jar cfm dist/word-pro.jar classes/manifest.txt -C classes wordpro
+
+      - name: Package the app (Java is bundled, nothing to install)
+        run: |
+          ICON_ARG=""
+          if [ -f "${{ matrix.icon }}" ]; then ICON_ARG="--icon ${{ matrix.icon }}"; fi
+          jpackage --type app-image --name word-pro --app-version "$APPVER" \
+            --vendor "Medhat Ullah" --description "Lightweight Word-style editor" \
+            --input dist --main-jar word-pro.jar --main-class wordpro.Main \
+            --dest release $ICON_ARG
+
+      - name: Archive (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          tar -czf "upload/word-pro-$TAG-${{ matrix.name }}.tar.gz" -C release word-pro
+          cp dist/word-pro.jar "upload/word-pro-$TAG.jar"
+
+      - name: Archive (Windows)
+        if: runner.os == 'Windows'
+        run: powershell -NoProfile -Command "Compress-Archive -Path release/word-pro -DestinationPath upload/word-pro-$TAG-${{ matrix.name }}.zip"
+
+      - name: Archive (macOS)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent release/word-pro.app "upload/word-pro-$TAG-${{ matrix.name }}.zip"
+
+      - name: Make sure WiX is available (needed for the Windows .exe and .msi installers)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: |
+          if ! command -v candle.exe >/dev/null 2>&1; then choco install wixtoolset --no-progress -y; fi
+          echo 'C:\Program Files (x86)\WiX Toolset v3.14\bin' >> "$GITHUB_PATH"
+
+      - name: Build installers (best effort)
+        continue-on-error: true
+        run: |
+          TYPES="deb"; EXTRA="--linux-shortcut"
+          case "$RUNNER_OS" in
+            Windows) TYPES="exe msi"; EXTRA="--win-menu --win-shortcut --win-dir-chooser --win-upgrade-uuid b7a2c1d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d" ;;
+            macOS)   TYPES="dmg"; EXTRA="" ;;
+          esac
+          ICON_ARG=""
+          if [ -f "${{ matrix.icon }}" ]; then ICON_ARG="--icon ${{ matrix.icon }}"; fi
+          for TYPE in $TYPES; do
+            jpackage --type "$TYPE" --name word-pro --app-version "$APPVER" \
+              --vendor "Medhat Ullah" --description "Lightweight Word-style editor" \
+              --input dist --main-jar word-pro.jar --main-class wordpro.Main \
+              --dest installers $EXTRA $ICON_ARG || echo "installer $TYPE failed, skipping"
+          done
+          for f in installers/*; do
+            [ -f "$f" ] || continue
+            ext="${f##*.}"; suffix=""
+            if [ "$ext" = "exe" ]; then suffix="-setup"; fi
+            cp "$f" "upload/word-pro-$TAG-${{ matrix.name }}$suffix.$ext"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.name }}
+          path: upload/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          merge-multiple: true
+          path: files
+      - name: Checksums
+        run: cd files && sha256sum * > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: files/*
+          body_path: .github/release-body.md
+          generate_release_notes: true
